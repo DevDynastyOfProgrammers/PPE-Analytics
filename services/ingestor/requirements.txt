@@ -1,0 +1,8 @@
+# ingestor/requirements.txt
+
+opencv-contrib-python
+pika
+sqlalchemy
+psycopg2-binary
+pydantic
+pydantic-settings

@@ -1,0 +1,16 @@
+# processor/requirements.txt
+
+opencv-python-headless
+numpy
+pika
+shapely
+requests
+pydantic
+pydantic-settings
+tritonclient[http]
+ultralytics
+# torch
+# torchvision
+onnxruntime
+onnx
+lapx>=0.5.5
