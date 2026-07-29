@@ -7,6 +7,8 @@ venv/
 # Docker
 .docker/
 
+.env
+
 # Media and Data
 *.mp4
 *.avi
