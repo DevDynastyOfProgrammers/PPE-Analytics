@@ -16,6 +16,8 @@ event_data/
 viol_detect/
 camera_previev/
 masks/
+media/*
+!media/.gitkeep
 
 # OS generated files
 .DS_Store

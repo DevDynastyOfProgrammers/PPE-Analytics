@@ -108,9 +108,7 @@ services:
         condition: service_healthy
     # Для теста пробрасываем видеофайл явно, если нужно
     volumes:
-      - ./test_video_h264.mp4:/app/test_video_h264.mp4
-      - ./Dima.mp4:/app/Dima.mp4
-      - ./Artem.mp4:/app/Artem.mp4
+      - ./media:/app/media:ro
       - ./event_data:/app/event_data
 
   processor:
