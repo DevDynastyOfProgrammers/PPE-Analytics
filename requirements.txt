@@ -3,3 +3,4 @@ pika
 requests
 ttkbootstrap
 ultralytics
+pydantic-settings

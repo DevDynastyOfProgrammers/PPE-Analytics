@@ -14,19 +14,14 @@ import pika
 import json
 import io
 from threading import Thread
-
-SERVER_IP = "localhost"
-API_PORT = "8888"  
-RABBIT_PORT = 5672
-RABBIT_USER = "guest"
-RABBIT_PASS = "guest"
+from client_config import settings
 
 
 class ServerClient:
     """Класс для общения с Бэкендом"""
 
     def __init__(self, on_alert_callback):
-        self.api_url = f"http://{SERVER_IP}:{API_PORT}"
+        self.api_url = f"http://{settings.CLIENT_API_HOST}:{settings.API_SERVER_PORT}"
         self.on_alert_callback = on_alert_callback
         self.is_connected = False
         self.rabbit_thread = None
@@ -99,8 +94,16 @@ class ServerClient:
     def _rabbit_worker(self):
         """Внутренняя логика работы с RabbitMQ"""
         try:
-            credentials = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-            parameters = pika.ConnectionParameters(SERVER_IP, RABBIT_PORT, '/', credentials)
+            credentials = pika.PlainCredentials(
+                settings.RABBITMQ_DEFAULT_USER,
+                settings.RABBITMQ_DEFAULT_PASS,
+            )
+            parameters = pika.ConnectionParameters(
+                settings.CLIENT_RABBITMQ_HOST,
+                settings.CLIENT_RABBITMQ_PORT,
+                "/",
+                credentials,
+            )
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
 
@@ -140,8 +143,16 @@ class ServerClient:
 
     def _stream_worker(self, callback):
         try:
-            credentials = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-            parameters = pika.ConnectionParameters(SERVER_IP, RABBIT_PORT, '/', credentials)
+            credentials = pika.PlainCredentials(
+                settings.RABBITMQ_DEFAULT_USER,
+                settings.RABBITMQ_DEFAULT_PASS,
+            )
+            parameters = pika.ConnectionParameters(
+                settings.CLIENT_RABBITMQ_HOST,
+                settings.CLIENT_RABBITMQ_PORT,
+                "/",
+                credentials,
+            )
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
             
@@ -251,7 +262,9 @@ class VideoProcessorApp:
             self.root.after(500, self.main_window)
         else:
             messagebox.showerror("Ошибка",
-                                 f"Не удалось подключиться к серверу {SERVER_IP}.\nПроверьте сеть и запущен ли Backend.")
+                                 f"Не удалось подключиться к серверу "
+                                 "{settings.CLIENT_API_HOST}.\n"
+                                 "Проверьте сеть и запущен ли Backend.")
 
     def handle_new_alert(self, alert_data):
         """
