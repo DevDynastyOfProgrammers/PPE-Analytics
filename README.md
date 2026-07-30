@@ -349,6 +349,16 @@ Expected Processor startup log:
 
 When a temporal PPE violation is detected, the Processor logs an alert and publishes a message to `violation_alerts_queue`. Evidence images are saved in `event_data/<YYYY-MM-DD>/` and available through the API under `/static/<YYYY-MM-DD>/`.
 
+## Tests
+
+Run the Processor unit tests inside its Docker image:
+
+```powershell
+docker compose run --rm processor python -m unittest discover -s tests -v
+```
+
+The tests cover temporal PPE-violation filtering and polygonal zone checks. They do not require PostgreSQL, RabbitMQ, a video source, or loaded model weights.
+
 ## Demonstration materials
 
 No generated screenshots, GIFs, or videos are included in this repository. Before portfolio review, add only real materials captured from your own run.
@@ -373,7 +383,7 @@ Store small documentation images in a tracked directory such as `docs/images/` a
 - The current implementation assumes a local Docker Compose network and RabbitMQ access from the desktop client.
 - Camera and zone persistence is managed through SQLAlchemy table creation at application startup; database schema migrations are not implemented.
 - Model weights and test media may be local assets and must be prepared before a full demonstration run.
-- No automated test suite is currently included.
+- Unit tests currently cover only the Processor's temporal violation logic and polygonal zone checks; integration tests for the Docker services and model inference are not included.
 
 ## Personal contribution
 
