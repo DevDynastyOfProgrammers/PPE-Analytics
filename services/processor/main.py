@@ -121,7 +121,7 @@ def send_processed_frame(channel, camera_id, frame, detections, zones):
         # Отправляем
         channel.basic_publish(
             exchange='',
-            routing_key=STREAM_QUEUE_NAME, 
+            routing_key=settings.QUEUE_NAME_STREAM, 
             body=json.dumps(msg)
         )
     except Exception as e:
@@ -236,7 +236,7 @@ def main():
             # --- Очередь для стрима ---
             # durable=False, так как это поток, старые кадры нам не нужны после перезагрузки
             channel.queue_declare(
-                queue=STREAM_QUEUE_NAME,
+                queue=settings.QUEUE_NAME_STREAM,
                 durable=False,
                 arguments={
                     "x-max-length": 2,
