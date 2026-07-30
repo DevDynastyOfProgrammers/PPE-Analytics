@@ -4,11 +4,9 @@ from PIL import Image, ImageTk, ImageOps
 import os
 import platform
 import subprocess
-import shutil 
 import base64
 from ultralytics.utils import LOGGER
 LOGGER.setLevel("ERROR")
-from ttkbootstrap import Style
 import requests
 import pika
 import json
@@ -871,7 +869,6 @@ class VideoProcessorApp:
         photo_frame.rowconfigure(0, weight=1)
         photo_frame.columnconfigure(0, weight=1)
 
-        path = 'viol_detect'
         # 🟡 ИЗМЕНЕНО: Берем фото из списка активных
         if viol_index < len(self.active_violations):
             try:
@@ -1058,10 +1055,7 @@ class VideoProcessorApp:
             
             if w < 10: w = 300 if is_grid else 800
             if h < 10: h = 200 if is_grid else 600
-            
-            # 🟡 ИСПРАВЛЕНИЕ: Используем contain вместо fit
-            # contain вмещает картинку полностью, сохраняя пропорции (добавляет пустые поля если надо)
-            # fit обрезает края (crop)
+
             image_resized = ImageOps.contain(image, (w, h))
             
             photo = ImageTk.PhotoImage(image_resized)
@@ -1072,8 +1066,8 @@ class VideoProcessorApp:
                     label_widget.image = photo # Удерживаем ссылку
             
             self.root.after(0, _update)
-        except:
-            pass
+        except Exception as error:
+            print(f"Live preview update error: {error}")
 
 def main():
     root = tk.Tk()
