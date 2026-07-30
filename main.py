@@ -612,24 +612,6 @@ class VideoProcessorApp:
         for widget in self.root.winfo_children():
             widget.destroy()
 
-        # img = self.server.get_preview(camera_index)
-
-        # if img is None:
-        #     error_img_path = "camera_previev/camera_error.jpg"
-        #     if os.path.exists(error_img_path):
-        #         img = Image.open(error_img_path)
-        #     else:
-        #         img = Image.new('RGB', (800, 600), color='gray')
-
-        # win_width = self.root.winfo_width()
-        # win_height = self.root.winfo_height()
-        # if win_width == 1:
-        #     win_width = 800
-        #     win_height = 600
-
-        # btn_area_height = int(win_height * 0.15)
-        # bg_height = win_height - btn_area_height
-
         # Загружаем превью
         img = self.server.get_preview(camera_index)
         
