@@ -373,39 +373,6 @@ class VideoProcessorApp:
             self.detail_label.configure(image=ph)
             self.detail_label.image = ph
 
-    # def update_live_image(self, cam_id, image):
-    #     """Этот метод вызывается из потока RabbitMQ, когда пришел новый кадр"""
-    #     # Проверяем, живо ли окно. Если пользователь его закрыл - выходим.
-    #     if not hasattr(self, 'live_window') or not self.live_window.winfo_exists():
-    #         return
-        
-    #     try:
-    #         # Получаем текущие размеры окна, чтобы растянуть картинку
-    #         win_w = self.live_window.winfo_width()
-    #         win_h = self.live_window.winfo_height()
-            
-    #         # Если окно только открылось, оно может выдавать размер 1x1, ставим дефолт
-    #         if win_w < 100: win_w = 800
-    #         if win_h < 100: win_h = 600
-
-    #         # Ресайзим картинку под размер окна (красиво, сохраняя пропорции crop/fit)
-    #         # Или просто resize, если хотим растянуть: image = image.resize((win_w, win_h))
-    #         image = ImageOps.fit(image, (win_w, win_h), centering=(0.5, 0.5))
-            
-    #         photo = ImageTk.PhotoImage(image)
-            
-    #         # ВАЖНО: Обновление GUI должно быть в главном потоке
-    #         def _update_ui():
-    #             if not self.live_window.winfo_exists(): return
-    #             self.live_label.config(image=photo)
-    #             self.live_label.image = photo # Ссылка, чтобы сборщик мусора не удалил
-            
-    #         # self.root.after(0, func) ставит задачу в очередь главного потока
-    #         self.root.after(0, _update_ui)
-            
-    #     except Exception as e:
-    #         print(f"UI Update Error: {e}")
-
     def main_window(self):
         for widget in self.root.winfo_children():
             widget.destroy()
