@@ -1,5 +1,3 @@
-# processor/main.py
-
 import pika
 import json
 import numpy as np

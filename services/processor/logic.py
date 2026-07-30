@@ -1,5 +1,3 @@
-# processor/logic.py
-
 from shapely.geometry import Point, Polygon
 from collections import deque
 

@@ -1,5 +1,3 @@
-# processor/tracker.py
-
 import numpy as np
 
 class SimpleTracker:
