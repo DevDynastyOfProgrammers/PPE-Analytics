@@ -110,6 +110,12 @@ The Processor annotates people in preview frames and saved evidence images.
 
 The labels and colours describe frame-level detection results. A violation alert is emitted only after the temporal filtering logic evaluates a tracked person inside a configured safety zone.
 
+### Evidence snapshots
+
+Each evidence snapshot is created for one confirmed violation event associated with a single tracked person. The Processor saves a copy of the current frame when the temporal rule confirms a violation, draws a red bounding box around the triggering `track_id`, and writes the corresponding violation type.
+
+Other people may be visible in the same image because the source frame contains the full camera view. Their absence of a red evidence bounding box does not mean that they were ignored or classified as compliant: the snapshot is evidence for one event, not a complete annotation of every person in the frame.
+
 ## Repository structure
 
 ```text
@@ -361,17 +367,15 @@ The tests cover temporal PPE-violation filtering and polygonal zone checks. They
 
 ## Demonstration materials
 
-No generated screenshots, GIFs, or videos are included in this repository. Before portfolio review, add only real materials captured from your own run.
+### Captured run
 
-Recommended materials:
-
-1. **Architecture diagram** — export the diagram from this README or create an equivalent diagram based on the running components.
-2. **API screenshot** — open `http://localhost:8888/docs` after starting the stack and capture the FastAPI interactive documentation.
-3. **RabbitMQ screenshot** — open `http://localhost:15672`, navigate to Queues, and capture the queues created by the running pipeline.
-4. **Dispatcher screenshot** — configure a local test video and safety zone, then capture the `LIVE Просмотр` window with an annotated frame.
-5. **Evidence screenshot** — capture an actual violation snapshot served under `/static/...` together with the corresponding Processor log entry.
-
-Store small documentation images in a tracked directory such as `docs/images/` and reference them from this README. Do not commit private videos, RTSP credentials, personal data, model weights without redistribution rights, or generated event data.
+| Component          | Evidence                                                |
+| ------------------ | ------------------------------------------------------- |
+| FastAPI API        | ![FastAPI documentation](docs/images/api-docs.png)      |
+| RabbitMQ queues    | ![RabbitMQ queues](docs/images/rabbitmq-queues.png)     |
+| Dispatcher main window | ![Dispatcher main window](docs/images/dispatcher-main-window.png) |
+| Dispatcher preview | ![Processed live preview](docs/images/live-preview.png) |
+| Violation evidence | ![Saved violation snapshot](docs/images/evidence.jpg)   |
 
 ## Limitations
 
