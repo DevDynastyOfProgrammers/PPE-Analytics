@@ -61,7 +61,7 @@ class ServerClient:
             print(f"Ошибка подключения к API: {e}")
             return False
     
-    # 🟡 ИЗМЕНЕНО: Метод для отправки зоны
+    # Метод для отправки зоны
     def send_zone(self, camera_id, points, name="Zone"):
         """Отправляет зону на сервер"""
         try:
@@ -105,7 +105,7 @@ class ServerClient:
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
 
-            # 🟡 ИЗМЕНЕНО: Очередь должна совпадать с той, куда пишет processor
+            # Очередь должна совпадать с той, куда пишет processor
             queue_name = 'violation_alerts_queue'
             channel.queue_declare(queue=queue_name, passive=True)
 
@@ -127,9 +127,6 @@ class ServerClient:
         except Exception as e:
             print(f"Ошибка RabbitMQ: {e}")
             self.is_connected = False
-
-    # 🟡 ИЗМЕНЕНО: Методы для стриминга видеопотока
-    # Внутри ServerClient
 
     def start_stream_listening(self, callback):
         """Запускает поток. callback(cam_id, image) будет вызываться для каждого кадра"""
@@ -168,7 +165,7 @@ class ServerClient:
                         image = Image.open(io.BytesIO(img_bytes))
                         callback(cam_id, image)
                 except Exception as e:
-                    pass # Игнорируем битые кадры
+                    print(f"Frame decode error: {e}")
 
             channel.basic_consume(queue=queue_name, on_message_callback=on_frame, auto_ack=True)
             channel.start_consuming()
@@ -223,17 +220,15 @@ class VideoProcessorApp:
         self.masks = []
         self.camera_error = 0
         self.camera_error_id = []
-        # 🟡 ИЗМЕНЕНО: переменные для отображения камер
-        self.live_widgets = {}     # {cam_id: label_in_grid}
-        self.detail_window = None  # Окно детального просмотра
-        self.detail_label = None   # Лейбл в детальном окне
-        self.detail_cam_id = None  # ID камеры в детальном окне
+        self.live_widgets = {}
+        self.detail_window = None
+        self.detail_label = None
+        self.detail_cam_id = None
 
         # Сразу запускаем слушателя стрима
         # Он будет работать в фоне и обновлять интерфейс, когда открыты окна
         self.server.start_stream_listening(self.dispatch_frame)
 
-        # 🟡 ИЗМЕНЕНО: Создаем папку для сохранения скачанных фото нарушений, если нет
         self.local_viol_dir = "viol_detect"
         os.makedirs(self.local_viol_dir, exist_ok=True)
 
@@ -260,13 +255,13 @@ class VideoProcessorApp:
             self.root.after(500, self.main_window)
         else:
             messagebox.showerror("Ошибка",
-                                 f"Не удалось подключиться к серверу "
-                                 "{settings.CLIENT_API_HOST}.\n"
+                                 "Не удалось подключиться к серверу "
+                                 f"{settings.CLIENT_API_HOST}.\n"
                                  "Проверьте сеть и запущен ли Backend.")
 
     def handle_new_alert(self, alert_data):
         """
-        🟡 ИЗМЕНЕНО: Логика обработки алерта.
+        Логика обработки алерта.
         Скачивает фото и обновляет интерфейс.
         """
         try:
@@ -295,7 +290,7 @@ class VideoProcessorApp:
         except Exception as e:
             print(f"Ошибка обработки алерта: {e}")
 
-    # 🟡 ИЗМЕНЕНО: отображение всех камер
+    # отображение всех камер
     def open_live_view(self):
         """Открывает окно мониторинга со всеми камерами (СЕТКА)"""
         
@@ -358,7 +353,7 @@ class VideoProcessorApp:
                 video_label.configure(image=ph)
                 video_label.image = ph
 
-    # 🟡 ИЗМЕНЕНО: отображение выбранной камеры в новом окне
+    # отображение выбранной камеры в новом окне
     def open_detail_view(self, cam_id, cam_name):
         """Открывает большое окно для одной камеры"""
         
@@ -449,7 +444,7 @@ class VideoProcessorApp:
         viol_btn = ttk.Button(btn_frame, text="Настройки", command=self.create_input_window, padding=(30, 10))
         viol_btn.grid(row=3, column=0, pady=5, sticky="ew")
         
-        # 🟡 ИЗМЕНЕНО: кнопка запуска LIVE просмотра
+        # кнопка запуска LIVE просмотра
         live_btn = ttk.Button(btn_frame, text="🔴 LIVE Просмотр", command=self.open_live_view, padding=(30, 10))
         live_btn.grid(row=4, column=0, pady=5, sticky="ew") # row=4 (или следующий свободный)
         Tooltip(live_btn, "Смотреть, как нейросеть работает в реальном времени")
@@ -476,7 +471,7 @@ class VideoProcessorApp:
         self.add_log = add_log
 
     def update_violation_log(self):
-        # 🟡 ИЗМЕНЕНО: защита от падения ПО
+        # защита от падения ПО
         if not hasattr(self, 'log_text'):
             return
         msg = f"Обнаружено нарушений - {self.violation}"
@@ -586,13 +581,13 @@ class VideoProcessorApp:
     def save_mask_to_file(self, camera_index, points):
         folder = "masks"
         os.makedirs(folder, exist_ok=True)
-        path = os.path.join(folder, f"camera_{camera_index}.txt") # 🟡 Fix: camera_index is ID now
+        path = os.path.join(folder, f"camera_{camera_index}.txt")
         line = " ".join([f"{x},{y}" for x, y in points])
         with open(path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
 
     def load_mask_from_file(self, camera_index):
-        mask_path = f"masks/camera_{camera_index}.txt" # 🟡 Fix
+        mask_path = f"masks/camera_{camera_index}.txt"
 
         if not os.path.exists(mask_path):
             return None
@@ -612,7 +607,7 @@ class VideoProcessorApp:
         return shapes
 
     def delete_mask_file(self, camera_index):
-        mask_path = f"masks/camera_{camera_index}.txt" # 🟡 Fix
+        mask_path = f"masks/camera_{camera_index}.txt"
         if os.path.exists(mask_path):
             os.remove(mask_path)
             print(f"Файл {mask_path} удалён.")
@@ -641,14 +636,6 @@ class VideoProcessorApp:
             win_height = 600
         btn_area_height = int(win_height * 0.15)
         bg_height = win_height - btn_area_height
-        # 🟡 ИЗМЕНЕНО: Важный момент масштабирования
-        # Backend ожидает координаты для картинки 640x (как в ingestor).
-        # Frontend растягивает картинку под окно. 
-        # Чтобы зоны работали корректно, лучше всего рисовать их
-        # когда размер окна близок к размеру видео. 
-        # Или же нужно делать сложную математику масштабирования, 
-        # которую сложно внедрить без переписывания класса.
-        # Пока оставляем как есть, но помните об этом.
         
         img_bg = ImageOps.fit(img, (win_width, bg_height), centering=(0.5, 0.5))
         self.bg_photo = ImageTk.PhotoImage(img_bg)
@@ -724,7 +711,6 @@ class VideoProcessorApp:
             self.masks.append(polygon)
             self.drawing_enabled = False
             
-            # 🟡 ИЗМЕНЕНО: Сохраняем в файл (старое) + Шлем на сервер (новое)
             self.save_mask_to_file(camera_index, self.points)
             self.server.send_zone(camera_index, self.points, name=f"UserZone_{len(self.masks)}")
             
@@ -743,9 +729,6 @@ class VideoProcessorApp:
 
             self.drawing_enabled = False
             self.delete_mask_file(camera_index)
-            
-            # 🟡 TODO: Если нужно удалять зоны и с сервера, нужен endpoint DELETE
-            # Пока просто чистим экран
             
             self.canvas.create_image(0, 0, anchor="nw", image=self.bg_photo)
 
@@ -778,7 +761,7 @@ class VideoProcessorApp:
         self.root.rowconfigure(1, weight=15)
         self.root.columnconfigure(0, weight=1)
 
-        # 🟡 ИЗМЕНЕНО: Отображаем реальные активные нарушения
+        # Отображаем реальные активные нарушения
         for i in range(len(self.active_violations)):
             row = i // columns
             col = i % columns
@@ -869,7 +852,7 @@ class VideoProcessorApp:
         photo_frame.rowconfigure(0, weight=1)
         photo_frame.columnconfigure(0, weight=1)
 
-        # 🟡 ИЗМЕНЕНО: Берем фото из списка активных
+        # Берем фото из списка активных
         if viol_index < len(self.active_violations):
             try:
                 placeholder_img = Image.open(self.active_violations[viol_index])
@@ -1030,7 +1013,7 @@ class VideoProcessorApp:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
-    # 🟡 ИЗМЕНЕНО: отображение живого видеопотока (размещение камер)
+    # отображение живого видеопотока (размещение камер)
     def dispatch_frame(self, cam_id, image):
         """Вызывается из потока RabbitMQ для КАЖДОГО кадра любой камеры"""
         
