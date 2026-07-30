@@ -1,5 +1,3 @@
-# ingestor/main.py
-
 import time
 import pika
 from config import settings

@@ -1,5 +1,3 @@
-# ingestor/video_stream.py
-
 import cv2
 import time
 import threading
