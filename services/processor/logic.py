@@ -1,87 +1,117 @@
-from shapely.geometry import Point, Polygon
 from collections import deque
 
+from shapely.geometry import Point, Polygon
+
+
+HISTORY_SECONDS = 3.0
+MIN_TRACK_DURATION_SECONDS = 1.0
+PPE_SCORE_THRESHOLD = 0.5
+ALERT_DEBOUNCE_SECONDS = 10.0
+
+
 class ViolationManager:
+    """Накапливает историю PPE-статусов треков и подавляет дублирующие алерты."""
+
     def __init__(self):
-        # Настройки
-        self.HISTORY_SECONDS = 3.0   # Сколько секунд анализируем
-        self.MIN_DURATION = 1.0      # Минимальное время трекинга перед решением
-        self.PPE_THRESHOLD = 0.5     # Если СИЗ есть менее чем в 50% кадров -> Нарушение
-        
-        # Хранилище: {track_id: deque([(timestamp, has_ppe_score), ...])}
-        # has_ppe_score: 1.0 (есть все), 0.5 (нет чего-то одного), 0.0 (нет ничего)
         self.history = {}
-        self.active_violations = {} # {track_id: last_alert_time}
+        self.active_violations = {}
 
     def update_person(self, track_id, has_helmet, has_vest, current_time):
-        """
-        Возвращает строку нарушения или None.
+        """Обновляет историю трека и возвращает тип подтверждённого нарушения.
+
+        Нарушение формируется, если после минимальной длительности трекинга
+        средний PPE-score за скользящее окно ниже порога. Повторные алерты
+        для того же трека подавляются в течение debounce-интервала.
+
+        Args:
+            track_id: Идентификатор трека человека.
+            has_helmet: Обнаружена ли каска в текущем кадре.
+            has_vest: Обнаружен ли жилет в текущем кадре.
+            current_time: Время обработки кадра в секундах.
+
+        Returns:
+            Строку с типом нарушения или None, если алерт не требуется.
         """
         if track_id not in self.history:
             self.history[track_id] = deque()
 
-        # Вычисляем очки СИЗ для текущего кадра (0, 0.5 или 1)
-        score = 0
-        if has_helmet: score += 0.5
-        if has_vest: score += 0.5
-        
-        # Добавляем в историю
-        self.history[track_id].append((current_time, score, has_helmet, has_vest))
+        score = 0.0
+        if has_helmet:
+            score += 0.5
+        if has_vest:
+            score += 0.5
 
-        # Удаляем старые записи (скользящее окно)
-        while self.history[track_id] and (current_time - self.history[track_id][0][0] > self.HISTORY_SECONDS):
-            self.history[track_id].popleft()
+        track_history = self.history[track_id]
+        track_history.append((current_time, score, has_helmet, has_vest))
 
-        # Если данных мало, выходим
-        track_duration = current_time - self.history[track_id][0][0]
-        if track_duration < self.MIN_DURATION:
+        while (
+            track_history
+            and current_time - track_history[0][0] > HISTORY_SECONDS
+        ):
+            track_history.popleft()
+
+        track_duration = current_time - track_history[0][0]
+        if track_duration < MIN_TRACK_DURATION_SECONDS:
             return None
 
-        # АНАЛИЗ: Считаем средний скор за окно времени
-        avg_score = sum(x[1] for x in self.history[track_id]) / len(self.history[track_id])
+        average_score = sum(item[1] for item in track_history) / len(track_history)
+        if average_score >= PPE_SCORE_THRESHOLD:
+            self.active_violations.pop(track_id, None)
+            return None
 
-        # Если средний показатель СИЗ ниже порога (например, < 0.5, то есть меньше 50%)
-        if avg_score < self.PPE_THRESHOLD:
-            # Определяем, чего именно не хватает чаще всего
-            no_helmet_cnt = sum(1 for x in self.history[track_id] if not x[2])
-            no_vest_cnt = sum(1 for x in self.history[track_id] if not x[3])
-            total = len(self.history[track_id])
+        total_frames = len(track_history)
+        no_helmet_count = sum(1 for item in track_history if not item[2])
+        no_vest_count = sum(1 for item in track_history if not item[3])
 
-            viol_parts = []
-            if (no_helmet_cnt / total) > 0.5: viol_parts.append("no_helmet")
-            if (no_vest_cnt / total) > 0.5: viol_parts.append("no_vest")
-            
-            violation_type = "+".join(viol_parts) if viol_parts else "no_ppe"
+        violation_parts = []
+        if no_helmet_count / total_frames > PPE_SCORE_THRESHOLD:
+            violation_parts.append("no_helmet")
+        if no_vest_count / total_frames > PPE_SCORE_THRESHOLD:
+            violation_parts.append("no_vest")
 
-            # Debounce: не спамим, если уже отправляли алерт по этому треку недавно (10 сек)
-            if track_id in self.active_violations:
-                if current_time - self.active_violations[track_id] < 10.0:
-                    return None
-            
-            self.active_violations[track_id] = current_time
-            return violation_type
+        last_alert_time = self.active_violations.get(track_id)
+        if (
+            last_alert_time is not None
+            and current_time - last_alert_time < ALERT_DEBOUNCE_SECONDS
+        ):
+            return None
 
-        # Если человек исправился (надел СИЗ), сбрасываем активное нарушение
-        if avg_score >= self.PPE_THRESHOLD and track_id in self.active_violations:
-            del self.active_violations[track_id]
+        self.active_violations[track_id] = current_time
+        return "+".join(violation_parts) if violation_parts else "no_ppe"
 
-        return None
 
 class GeometryChecker:
+    """Проверяет попадание опорной точки человека в заданные зоны."""
+
     def check_zones(self, person_box, zones):
-        x1, y1, x2, y2 = person_box
-        # Точка проверки: середина нижнего края (ноги)
+        """Возвращает первую зону, содержащую нижнюю центральную точку bbox.
+
+        Нижняя центральная точка bounding box используется как приближённая
+        позиция ног человека. Такой выбор снижает ложные попадания в зону,
+        когда в неё пересекается только верхняя часть bounding box.
+
+        Args:
+            person_box: Координаты человека в формате [x1, y1, x2, y2].
+            zones: Список API-представлений зон с polygon_coordinates.
+
+        Returns:
+            Кортеж (in_zone, zone_name, zone_id). Если точка не входит ни в
+            одну корректную зону, возвращается (False, None, None).
+        """
+        x1, _, x2, y2 = person_box
         feet_point = Point((x1 + x2) / 2, y2)
-        
+
         for zone in zones:
-            coords = zone.get('polygon_coordinates')
-            if not coords or len(coords) < 3: continue
-            
+            coordinates = zone.get("polygon_coordinates")
+            if not coordinates or len(coordinates) < 3:
+                continue
+
             try:
-                poly = Polygon(coords)
-                if poly.contains(feet_point):
-                    return True, zone.get('name', 'Zone'), zone.get('id')
-            except:
-                pass
-                
+                polygon = Polygon(coordinates)
+            except (TypeError, ValueError):
+                continue
+
+            if polygon.contains(feet_point):
+                return True, zone.get("name", "Zone"), zone.get("id")
+
         return False, None, None
