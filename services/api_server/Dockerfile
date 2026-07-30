@@ -1,4 +1,3 @@
-# api_server/Dockerfile
 # 1. Используем официальный образ Python
 FROM python:3.10-slim
 
