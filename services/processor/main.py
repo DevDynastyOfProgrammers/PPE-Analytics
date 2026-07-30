@@ -237,7 +237,14 @@ def main():
 
             # --- Очередь для стрима ---
             # durable=False, так как это поток, старые кадры нам не нужны после перезагрузки
-            channel.queue_declare(queue=STREAM_QUEUE_NAME, durable=False)
+            channel.queue_declare(
+                queue=STREAM_QUEUE_NAME,
+                durable=False,
+                arguments={
+                    "x-max-length": 2,
+                    "x-overflow": "drop-head",
+                },
+            )
 
             channel.basic_qos(prefetch_count=1)
             

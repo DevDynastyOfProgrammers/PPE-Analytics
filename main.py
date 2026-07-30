@@ -106,7 +106,7 @@ class ServerClient:
 
             # 🟡 ИЗМЕНЕНО: Очередь должна совпадать с той, куда пишет processor
             queue_name = 'violation_alerts_queue'
-            channel.queue_declare(queue=queue_name, durable=True)
+            channel.queue_declare(queue=queue_name, passive=True)
 
             print("✅ Подключено к RabbitMQ. Жду алерты...")
 
@@ -146,7 +146,7 @@ class ServerClient:
             channel = connection.channel()
             
             queue_name = 'processed_stream_queue'
-            channel.queue_declare(queue=queue_name, durable=False)
+            channel.queue_declare(queue=queue_name, passive=True)
 
             def on_frame(ch, method, props, body):
                 try:

@@ -18,10 +18,12 @@ camera_previev/
 masks/
 media/*
 !media/.gitkeep
+.obsidian/
 
 # OS generated files
 .DS_Store
 Thumbs.db
+compose.resolved.yml
 
 # IDEs
 .idea/
